@@ -29,6 +29,9 @@ interface Step3Props {
   /** Media URL for an IMAGE/VIDEO/DOCUMENT header, when the template has one. */
   headerMediaUrl: string;
   onHeaderMediaUrlChange: (url: string) => void;
+  /** Optional document filename for DOCUMENT headers. */
+  headerDocumentFilename?: string;
+  onHeaderDocumentFilenameChange?: (name: string) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -73,6 +76,8 @@ export function Step3Personalize({
   onUpdate,
   headerMediaUrl,
   onHeaderMediaUrlChange,
+  headerDocumentFilename,
+  onHeaderDocumentFilenameChange,
   onNext,
   onBack,
 }: Step3Props) {
@@ -269,6 +274,23 @@ export function Step3Personalize({
           <p className="mt-1.5 text-xs text-muted-foreground">
             {t('personalize.headerImageDesc')}
           </p>
+          {mediaHeaderType === 'document' && (
+            <div className="mt-3">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                {t('personalize.documentFilename')}
+              </label>
+              <Input
+                type="text"
+                value={headerDocumentFilename ?? ''}
+                onChange={(e) => onHeaderDocumentFilenameChange?.(e.target.value)}
+                placeholder={t('personalize.documentFilenamePlaceholder')}
+                className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {t('personalize.documentFilenameDesc')}
+              </p>
+            </div>
+          )}
           {mediaHeaderType === 'image' &&
             headerMediaError === null &&
             headerMediaUrl.trim() && (

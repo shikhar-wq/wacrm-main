@@ -42,6 +42,7 @@ import {
 } from '@/lib/whatsapp/phone-utils';
 import { resolveContactSendTarget } from '@/lib/whatsapp/wa-identity';
 import type { MessageTemplate } from '@/types';
+import type { SendTimeParams } from '@/lib/whatsapp/template-send-builder';
 import {
   resolveTemplateRow,
   templateBodyParams,
@@ -341,6 +342,13 @@ export async function sendMessageToConversation(
 
   const attempt = async (phone: string): Promise<string> => {
     if (messageType === 'template') {
+      const structuredParams =
+        typeof templateMessageParams === 'object' && templateMessageParams !== null
+          ? { ...(templateMessageParams as Record<string, unknown>) }
+          : {};
+      if (filename && !structuredParams.filename && !structuredParams.headerDocumentFilename) {
+        structuredParams.filename = filename;
+      }
       const result = await sendTemplateMessage({
         phoneNumberId: config.phone_number_id,
         accessToken,
@@ -348,7 +356,10 @@ export async function sendMessageToConversation(
         templateName: templateName!,
         language: sendLanguage,
         template: templateRow ?? undefined,
-        messageParams: templateMessageParams ?? undefined,
+        messageParams:
+          Object.keys(structuredParams).length > 0
+            ? (structuredParams as SendTimeParams)
+            : undefined,
         params: templateParams || [],
         contextMessageId,
       });

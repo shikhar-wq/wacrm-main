@@ -116,7 +116,7 @@ describe('buildSendComponents — header', () => {
     });
   });
 
-  it('does NOT use the resumable header_handle at send — falls back to the stored link', () => {
+  it('does NOT use the resumable header_handle at send — falls back to the stored link with resolved filename', () => {
     // header_handle is a template-CREATION sample handle, invalid as a
     // send-time media id. The send must use the public link instead.
     const components = buildSendComponents(
@@ -128,7 +128,51 @@ describe('buildSendComponents — header', () => {
     );
     expect(components[0]).toEqual({
       type: 'header',
-      parameters: [{ type: 'document', document: { link: 'https://x.com/doc.pdf' } }],
+      parameters: [{ type: 'document', document: { link: 'https://x.com/doc.pdf', filename: 'doc.pdf' } }],
+    });
+  });
+
+  it('honors an explicit headerDocumentFilename for document headers', () => {
+    const components = buildSendComponents(
+      row({
+        header_type: 'document',
+        header_media_url: 'https://x.com/download?id=123',
+      }),
+      { headerDocumentFilename: 'invoice_2026.pdf' },
+    );
+    expect(components[0]).toEqual({
+      type: 'header',
+      parameters: [
+        {
+          type: 'document',
+          document: {
+            link: 'https://x.com/download?id=123',
+            filename: 'invoice_2026.pdf',
+          },
+        },
+      ],
+    });
+  });
+
+  it('falls back to template name with .pdf when document URL has no filename', () => {
+    const components = buildSendComponents(
+      row({
+        name: 'monthly_summary',
+        header_type: 'document',
+        header_media_url: 'https://x.com/files/download',
+      }),
+    );
+    expect(components[0]).toEqual({
+      type: 'header',
+      parameters: [
+        {
+          type: 'document',
+          document: {
+            link: 'https://x.com/files/download',
+            filename: 'monthly_summary.pdf',
+          },
+        },
+      ],
     });
   });
 

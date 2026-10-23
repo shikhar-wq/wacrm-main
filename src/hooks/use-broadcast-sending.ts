@@ -46,6 +46,11 @@ interface BroadcastPayload {
    * falls back to the template's stored URL only when this is empty.
    */
   headerMediaUrl?: string;
+  /**
+   * Optional custom filename for a DOCUMENT header. Defaults to the
+   * filename in the URL or template name when omitted.
+   */
+  headerDocumentFilename?: string;
 }
 
 interface UseBroadcastSendingReturn {
@@ -423,8 +428,14 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         headerType === 'video' ||
         headerType === 'document';
       const headerMediaUrl = payload.headerMediaUrl?.trim();
+      const headerDocumentFilename = payload.headerDocumentFilename?.trim();
       const messageParams =
-        isMediaHeader && headerMediaUrl ? { headerMediaUrl } : undefined;
+        isMediaHeader && (headerMediaUrl || headerDocumentFilename)
+          ? {
+              ...(headerMediaUrl ? { headerMediaUrl } : {}),
+              ...(headerDocumentFilename ? { headerDocumentFilename } : {}),
+            }
+          : undefined;
 
       for (let i = 0; i < recipients.length; i += SEND_BATCH_SIZE) {
         const batch = recipients.slice(i, i + SEND_BATCH_SIZE);

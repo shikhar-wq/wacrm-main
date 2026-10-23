@@ -33,6 +33,7 @@
 import type { MessageTemplate, TemplateButton } from '@/types';
 import { extractVariableIndices } from './template-validators';
 import { getT } from '@/lib/i18n/translate';
+import { basenameFromUrl, sanitizeFilename } from '@/lib/media/filename';
 
 const t = getT('Validation.templates');
 
@@ -45,6 +46,14 @@ export interface SendTimeParams {
   headerMediaUrl?: string;
   /** Alternative: send the media by Meta media id (from prior upload). */
   headerMediaId?: string;
+  /**
+   * Optional filename for a DOCUMENT header. If omitted for a document
+   * header, falls back to the basename of the document URL (or a fallback
+   * based on the template name) so Meta does not label it as "untitled".
+   */
+  headerDocumentFilename?: string;
+  documentFilename?: string;
+  filename?: string;
   /**
    * Per-button overrides keyed by the button's index in the
    * template's `buttons` array. Used for URL buttons with a {{1}}
@@ -68,7 +77,7 @@ type MetaSendParameter =
   | { type: 'text'; text: string }
   | { type: 'image'; image: { link?: string; id?: string } }
   | { type: 'video'; video: { link?: string; id?: string } }
-  | { type: 'document'; document: { link?: string; id?: string } }
+  | { type: 'document'; document: { link?: string; id?: string; filename?: string } }
   | { type: 'coupon_code'; coupon_code: string }
   | { type: 'payload'; payload: string };
 
@@ -114,6 +123,26 @@ function buildHeaderComponent(
     );
   }
   const mediaPayload: { link?: string; id?: string } = id ? { id } : { link };
+
+  let documentPayload: { link?: string; id?: string; filename?: string } = mediaPayload;
+  if (headerType === 'document') {
+    const userSupplied =
+      params.headerDocumentFilename ??
+      params.documentFilename ??
+      params.filename;
+    const customName = userSupplied?.trim()
+      ? sanitizeFilename(userSupplied.trim())
+      : '';
+    const fallbackFromUrl = link ? basenameFromUrl(link) : '';
+    const fallbackFromName = `${sanitizeFilename(template.name) || 'document'}.pdf`;
+    const resolvedFilename = customName || fallbackFromUrl || fallbackFromName;
+
+    documentPayload = {
+      ...mediaPayload,
+      filename: resolvedFilename,
+    };
+  }
+
   return {
     type: 'header',
     parameters: [
@@ -121,7 +150,7 @@ function buildHeaderComponent(
         ? { type: 'image', image: mediaPayload }
         : headerType === 'video'
           ? { type: 'video', video: mediaPayload }
-          : { type: 'document', document: mediaPayload },
+          : { type: 'document', document: documentPayload },
     ],
   };
 }
